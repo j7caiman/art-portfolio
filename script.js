@@ -8,3 +8,4 @@ image.onload = function() {
   canvas.height = image.height;
   context.drawImage(image, 0, 0);
 }
+
