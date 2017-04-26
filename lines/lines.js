@@ -9,7 +9,7 @@
     var imageContext = imageCanvas.getContext('2d');
     imageContext.drawImage(image, 0, 0);
 
-    var NUM_ITERATIONS = 600;
+    var NUM_ITERATIONS = 300;
 
     var canvas = document.getElementById("lines-canvas");
     var context = canvas.getContext("2d");
