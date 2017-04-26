@@ -9,7 +9,7 @@
     var imageContext = imageCanvas.getContext('2d');
     imageContext.drawImage(image, 0, 0);
 
-    var NUM_ITERATIONS = 300;
+    var NUM_ITERATIONS = 50;
 
     var canvas = document.getElementById("lines-canvas");
     var context = canvas.getContext("2d");
@@ -112,31 +112,6 @@
       };
     }
 
-    function getAverageColorOfShape(path) {
-      var bounds = getBoundingRectangleOfShape(path);
-      var imageData = imageContext.getImageData(bounds.x, bounds.y, bounds.width, bounds.height);
-      var averageColor = [0, 0, 0, 255];
-      var length = 0;
-      for (var i = 0; i < imageData.data.length; i += 4) { // skip alpha channel
-        var point = {
-          x: bounds.x + (i % imageData.width),
-          y: bounds.y + Math.floor(i / imageData.width)
-        };
-        if (isPointInsidePath(point, path)) {
-          length++;
-          averageColor[0] += imageData.data[i];
-          averageColor[1] += imageData.data[i + 1];
-          averageColor[2] += imageData.data[i + 2];
-        }
-      }
-
-      averageColor[0] = Math.round(averageColor[0] / length);
-      averageColor[1] = Math.round(averageColor[1] / length);
-      averageColor[2] = Math.round(averageColor[2] / length);
-
-      return averageColor;
-    }
-
     function getBoundingRectangleOfShape(path) {
       var rectangle = {
         x: RIGHT_BOUND,
@@ -161,12 +136,9 @@
         }
       }
 
-      return {
-        x: rectangle.x,
-        y: rectangle.y,
-        width: rectangle.x2 - rectangle.x,
-        height: rectangle.y2 - rectangle.y
-      };
+      rectangle.width = rectangle.x2 - rectangle.x;
+      rectangle.height = rectangle.y2 - rectangle.y;
+      return rectangle;
     }
 
     function getIntersectionPoint(p, p2, q, q2) {
@@ -204,7 +176,48 @@
       }
     }
 
-    function isPointInsidePath(point, path) {
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    function Shape(path) {
+      this.path = path;
+      this.boundingRectangle = getBoundingRectangleOfShape(path);
+    }
+
+    Shape.prototype.getAverageColorOfShape = function() {
+      var bounds = this.boundingRectangle;
+      var imageData = imageContext.getImageData(bounds.x, bounds.y, bounds.width, bounds.height);
+      var averageColor = [0, 0, 0, 255];
+      var length = 0;
+      for (var i = 0; i < imageData.data.length; i += 4) { // skip alpha channel
+        var point = {
+          x: bounds.x + (i % imageData.width),
+          y: bounds.y + Math.floor(i / imageData.width)
+        };
+        if (this.containsPoint(point)) {
+          length++;
+          averageColor[0] += imageData.data[i];
+          averageColor[1] += imageData.data[i + 1];
+          averageColor[2] += imageData.data[i + 2];
+        }
+      }
+
+      averageColor[0] = Math.round(averageColor[0] / length);
+      averageColor[1] = Math.round(averageColor[1] / length);
+      averageColor[2] = Math.round(averageColor[2] / length);
+
+      return averageColor;
+    }
+
+    Shape.prototype.containsPoint = function(point) {
+      var path = this.path;
+      var bounds = this.boundingRectangle;
+
+      if (point.x < bounds.x || point.y < bounds.y || point.x > bounds.x2 || point.y > bounds.y2) {
+        return false;
+      }
+
       var inside = false;
       for (var i = 0, j = path.length - 1; i < path.length; j = i++) {
         var intersect = ((path[i].y > point.y) != (path[j].y > point.y)) && (point.x < (path[j].x - path[i].x) * (point.y - path[i].y) / (path[j].y - path[i].y) + path[i].x);
@@ -214,20 +227,6 @@
       }
 
       return inside;
-    }
-
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min)) + min;
-    }
-
-    function Shape(path, fillColor) {
-      this.path = path;
-      var color = getAverageColorOfShape(path);
-      this.fillColor = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
-    }
-
-    Shape.prototype.containsPoint = function(point) {
-      return isPointInsidePath(point, this.path);
     }
 
     Shape.prototype.split = function(line) {
@@ -267,14 +266,31 @@
     }
 
     Shape.prototype.draw = function() {
-      context.beginPath();
-      context.moveTo(this.path[0].x, this.path[0].y);
-      for (var i = 1; i < this.path.length; i++) {
-        var point = this.path[i];
-        context.lineTo(point.x, point.y);
+      var approximateArea = this.boundingRectangle.width * this.boundingRectangle.height;
+      if (approximateArea > 60) {
+        context.beginPath();
+        context.moveTo(this.path[0].x, this.path[0].y);
+        for (var i = 1; i < this.path.length; i++) {
+          var point = this.path[i];
+          context.lineTo(point.x, point.y);
+        }
+        var color = this.getAverageColorOfShape();
+        context.fillStyle = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
+        context.fill();
+      } else {
+        var path = this.path;
+
+        context.save();
+        context.beginPath();
+        context.moveTo(path[0].x, path[0].y);
+        for (var i = 1; i < path.length; i++) {
+          var point = path[i];
+          context.lineTo(point.x, point.y);
+        }
+        context.clip();
+        context.drawImage(image, 0, 0);
+        context.restore();
       }
-      context.fillStyle = this.fillColor;
-      context.fill();
     }
   };
 }());

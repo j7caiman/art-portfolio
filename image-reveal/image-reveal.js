@@ -28,7 +28,10 @@
       });
     });
 
-    canvas.addEventListener('mouseup', function(event) {});
+    canvas.addEventListener('mouseup', function(event) {
+      var averageColor = getAverageColorOfShape(path);
+      fillShape(path, averageColor);
+    });
 
     var firstShape = [{
       x: 0,
@@ -119,14 +122,25 @@
     }
 
     function fillShape(path, color) {
-      console.log(color);
-      context.fillStyle = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
+      context.save();
       context.beginPath();
       context.moveTo(path[0].x, path[0].y);
       for (var i = 1; i < path.length; i++) {
-        context.lineTo(path[i].x, path[i].y);
+        var point = path[i];
+        context.lineTo(point.x, point.y);
       }
-      context.fill();
+      context.clip();
+      context.drawImage(image, 0, 0);
+      context.restore();
+
+      // console.log(color);
+      // context.fillStyle = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
+      // context.beginPath();
+      // context.moveTo(path[0].x, path[0].y);
+      // for (var i = 1; i < path.length; i++) {
+      //   context.lineTo(path[i].x, path[i].y);
+      // }
+      // context.fill();
     }
 
     function getAverageColorOfShape(path) {
