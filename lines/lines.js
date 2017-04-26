@@ -3,20 +3,19 @@
 
   var NUM_ITERATIONS = 300;
 
-  var canvas = $("#linesCanvas");
-  var context = canvas[0].getContext("2d");
+  var canvas = document.getElementById("lines-canvas");
+  var context = canvas.getContext("2d");
 
   var RIGHT_BOUND;
   var LOWER_BOUND;
   var interval;
 
-  canvas.click(restart);
   restart();
   function restart() {
     clearInterval(interval);
 
-    RIGHT_BOUND = canvas[0].width = $(window).width();
-    LOWER_BOUND = canvas[0].height = $(window).height();
+    RIGHT_BOUND = canvas.width = window.innerWidth;
+    LOWER_BOUND = canvas.height = window.innerHeight;
 
     context.fillStyle = "#FFFFFF";
     context.fillRect(0, 0, RIGHT_BOUND, LOWER_BOUND);

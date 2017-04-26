@@ -1,7 +1,7 @@
 (function() {
   "use strict";
 
-  var canvas = document.getElementById("circlesCanvas");
+  var canvas = document.getElementById("circles-canvas");
   var context = canvas.getContext("2d");
 
   var RIGHT_BOUND = canvas.width = window.innerWidth;
