@@ -2,7 +2,7 @@
   "use strict";
   var imageCanvas = document.createElement('canvas');
   var image = new Image();
-  image.src = './image.jpg';
+  image.src = './image2.jpg';
   image.onload = function() {
     imageCanvas.width = image.width;
     imageCanvas.height = image.height;
@@ -181,6 +181,7 @@
         var color = this.getAverageColorOfShape();
         context.fillStyle = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
         context.fill();
+        context.stroke();
       } else {
         var path = this.path;
 
@@ -200,26 +201,26 @@
     function createRandomLineAtPoint(point) {
       var angle = Math.random() * Math.PI;
 
-      var startPosition = {
+      var start = {
         x: 0,
         y: point.y + Math.tan(angle) * point.x
       };
 
-      var slope = (point.y - startPosition.y) / (point.x - startPosition.x);
+      var slope = (point.y - start.y) / (point.x - start.x);
 
-      var endPosition = {
+      var end = {
         x: RIGHT_BOUND,
-        y: startPosition.y + RIGHT_BOUND * slope
+        y: start.y + RIGHT_BOUND * slope
       }
 
       return {
         start: {
-          x: startPosition.x,
-          y: startPosition.y
+          x: start.x,
+          y: start.y
         },
         end: {
-          x: endPosition.x,
-          y: endPosition.y
+          x: end.x,
+          y: end.y
         },
         randomPoint: {
           x: point.x,
@@ -228,11 +229,28 @@
       };
     }
 
+    function createLine(p1, p2) {
+      var slope = (p2.y - p1.y) / (p2.x - p1.x);
+      return {
+        start: {
+          x: 0,
+          y: p1.y - p1.x * slope
+        },
+        end: {
+          x: RIGHT_BOUND,
+          y: p1.y + (RIGHT_BOUND - p1.x) * slope
+        },
+        randomPoint: {
+          x: p1.x,
+          y: p1.y
+        }
+      };
+    }
 
     reset();
 
     function createPointsNearPoint(point) {
-      var numPoints = 10;
+      var numPoints = 3;
 
       var points = [];
       for (var i = 0; i < numPoints; i++) {
@@ -254,65 +272,50 @@
 
         // context.fillStyle = "#00FF00"
         // context.fillRect(points[points.length - 1].x - 1, points[points.length - 1].y - 1, 2, 2);
-
-
       }
 
       return points;
     }
 
     var on = false;
-    var interval;
-    var points;
-
 
     function onMouseDown(event) {
+      event.preventDefault();
+
       on = true;
-      points = [];
-
-      interval = setInterval(function() {
-        var point = points.pop();
-        if (point === undefined) {
-          return;
-        }
-
-        var line = createRandomLineAtPoint(point);
-        for (var i = 0; i < shapes.length; i++) {
-          var shape = shapes[i];
-          if (shape.containsPoint(line.randomPoint)) {
-            shapes.splice(i, 1);
-            var newShapes = shape.split(line);
-            newShapes[0].draw();
-            newShapes[1].draw();
-            shapes.push(newShapes[0]);
-            shapes.push(newShapes[1]);
-            break;
-          }
-        }
-      }, 4);
+      console.log('loop');
     }
 
     function onMouseMove(event) {
       if (!on) {
         return;
       }
-      points = points.concat(createPointsNearPoint({
-        x: event.x,
-        y: event.y
-      }));
+
+      var points = createPointsNearPoint(event);
+      for (var i = 0; i < points.length; i++) {
+        var line;
+        // if (i % 2 === 0) {
+        //   line = createLine(points[i], event);
+        // } else {
+        line = createRandomLineAtPoint(points[i]);
+        // }
+        handleShapeSplit(line);
+      }
     }
 
     function onMouseUp(event) {
       on = false;
-      // setTimeout(function() {
-      clearInterval(interval);
-      // }, 500);
     }
 
     canvas.addEventListener('mousedown', onMouseDown);
     canvas.addEventListener('touchstart', onMouseDown);
 
-    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('mousemove', function(event) {
+      onMouseMove({
+        x: event.pageX,
+        y: event.pageY
+      })
+    });
     canvas.addEventListener('touchmove', function(event) {
       event.preventDefault();
       onMouseMove({
@@ -323,6 +326,21 @@
 
     canvas.addEventListener('mouseup', onMouseUp);
     canvas.addEventListener('touchend', onMouseUp);
+
+    function handleShapeSplit(line) {
+      for (var i = 0; i < shapes.length; i++) {
+        var shape = shapes[i];
+        if (shape.containsPoint(line.randomPoint)) {
+          shapes.splice(i, 1);
+          var newShapes = shape.split(line);
+          newShapes[0].draw();
+          newShapes[1].draw();
+          shapes.push(newShapes[0]);
+          shapes.push(newShapes[1]);
+          break;
+        }
+      }
+    }
 
     function reset() {
       shapes = [];
