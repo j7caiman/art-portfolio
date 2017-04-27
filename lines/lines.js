@@ -205,6 +205,12 @@
         var color = this.getAverageColorOfShape();
         context.fillStyle = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
         context.fill();
+
+        if(approximateArea < 200) {
+          context.lineWidth = 0.3;
+        } else {
+          context.lineWidth = 1;
+        }
         context.stroke();
       } else {
         var path = this.path;
@@ -301,23 +307,20 @@
       return points;
     }
 
-    var on = false;
+    var mendInterval;
+    var mendTimeout;
 
     function onMouseDown(point) {
-      on = true;
       createShatterPoints(point);
+      mend();
     }
 
     function onMouseMove(point) {
-      if (!on) {
-        return;
-      }
       createShatterPoints(point);
+      mend();
     }
 
-    function onMouseUp(event) {
-      on = false;
-    }
+    function onMouseUp() {}
 
     function createShatterPoints(point) {
       var points = createPointsNearPoint(point);
@@ -390,25 +393,30 @@
       firstShape.draw();
     }
 
-    setInterval(
-      function mend() {
-        var shape = firstShape;
-        if (shape.children === undefined) {
-          return;
-        }
-
-        while (shape.children[0].children !== undefined || shape.children[1].children !== undefined) {
-          if (shape.children[0].children !== undefined && shape.children[1].children !== undefined) {
-            shape = shape.children[getRandomInt(0, 2)];
-          } else if (shape.children[0].children !== undefined) {
-            shape = shape.children[0];
-          } else {
-            shape = shape.children[1];
+    function mend() {
+      clearInterval(mendInterval);
+      clearTimeout(mendTimeout);
+      mendTimeout = setTimeout(function() {
+        mendInterval = setInterval(function() {
+          var shape = firstShape;
+          if (shape.children === undefined) {
+            return;
           }
-        }
 
-        shape.children = undefined;
-        shape.draw();
-      }, 20);
+          while (shape.children[0].children !== undefined || shape.children[1].children !== undefined) {
+            if (shape.children[0].children !== undefined && shape.children[1].children !== undefined) {
+              shape = shape.children[getRandomInt(0, 2)];
+            } else if (shape.children[0].children !== undefined) {
+              shape = shape.children[0];
+            } else {
+              shape = shape.children[1];
+            }
+          }
+
+          shape.children = undefined;
+          shape.draw();
+        }, 100);
+      }, 2000);
+    }
   };
 }());
