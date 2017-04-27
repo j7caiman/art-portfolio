@@ -10,6 +10,7 @@
     imageContext.drawImage(image, 0, 0);
 
     var canvas = document.getElementById("lines-canvas");
+    var $canvas = $("#lines-canvas");
     var context = canvas.getContext("2d");
 
     var RIGHT_BOUND = canvas.width = imageCanvas.width;
@@ -279,53 +280,32 @@
 
     var on = false;
 
-    function onMouseDown(event) {
-      event.preventDefault();
-
+    function onMouseDown(point) {
+      console.log('meow');
+      console.log(point);
       on = true;
-      console.log('loop');
+      createShatterPoints(point);
     }
 
-    function onMouseMove(event) {
+    function onMouseMove(point) {
       if (!on) {
         return;
       }
-
-      var points = createPointsNearPoint(event);
-      for (var i = 0; i < points.length; i++) {
-        var line;
-        // if (i % 2 === 0) {
-        //   line = createLine(points[i], event);
-        // } else {
-        line = createRandomLineAtPoint(points[i]);
-        // }
-        handleShapeSplit(line);
-      }
+      createShatterPoints(point);
     }
 
     function onMouseUp(event) {
       on = false;
     }
 
-    canvas.addEventListener('mousedown', onMouseDown);
-    canvas.addEventListener('touchstart', onMouseDown);
+    function createShatterPoints(point) {
+      var points = createPointsNearPoint(point);
 
-    canvas.addEventListener('mousemove', function(event) {
-      onMouseMove({
-        x: event.pageX,
-        y: event.pageY
-      })
-    });
-    canvas.addEventListener('touchmove', function(event) {
-      event.preventDefault();
-      onMouseMove({
-        x: event.touches[0].pageX,
-        y: event.touches[0].pageY
-      });
-    });
-
-    canvas.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('touchend', onMouseUp);
+      for (var i = 0; i < points.length; i++) {
+        var line = createRandomLineAtPoint(points[i]);
+        handleShapeSplit(line);
+      }
+    }
 
     function handleShapeSplit(line) {
       for (var i = 0; i < shapes.length; i++) {
@@ -341,6 +321,45 @@
         }
       }
     }
+
+    canvas.addEventListener('mousedown', function(event) {
+      event.preventDefault();
+      var offset = $canvas.offset();
+      onMouseDown({
+        x: event.pageX - offset.left,
+        y: event.pageY - offset.top
+      })
+    });
+
+    canvas.addEventListener('touchstart', function(event) {
+      event.preventDefault();
+      var offset = $canvas.offset();
+      onMouseDown({
+        x: event.touches[0].pageX - offset.left,
+        y: event.touches[0].pageY - offset.top
+      });
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+      var offset = $canvas.offset();
+      onMouseMove({
+        x: event.pageX - offset.left,
+        y: event.pageY - offset.top
+      })
+    });
+
+    canvas.addEventListener('touchmove', function(event) {
+      event.preventDefault();
+      var offset = $canvas.offset();
+      onMouseMove({
+        x: event.touches[0].pageX - offset.left,
+        y: event.touches[0].pageY - offset.top
+      });
+    });
+
+    canvas.addEventListener('mouseup', onMouseUp);
+
+    canvas.addEventListener('touchend', onMouseUp);
 
     function reset() {
       shapes = [];
