@@ -9,108 +9,12 @@
     var imageContext = imageCanvas.getContext('2d');
     imageContext.drawImage(image, 0, 0);
 
-    var NUM_ITERATIONS = 50;
-
     var canvas = document.getElementById("lines-canvas");
     var context = canvas.getContext("2d");
 
-    var RIGHT_BOUND;
-    var LOWER_BOUND;
-    var interval;
-
-    restart();
-
-    function restart() {
-      clearInterval(interval);
-
-      RIGHT_BOUND = canvas.width = imageCanvas.width;
-      LOWER_BOUND = canvas.height = imageCanvas.height;
-
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, RIGHT_BOUND, LOWER_BOUND);
-
-      context.lineWidth = 0.005;
-      var firstShape = new Shape(
-        [{
-          x: 0,
-          y: 0
-        }, {
-          x: 0,
-          y: LOWER_BOUND
-        }, {
-          x: RIGHT_BOUND,
-          y: LOWER_BOUND
-        }, {
-          x: RIGHT_BOUND,
-          y: 0
-        }]
-      );
-
-      var shapes = [];
-      shapes.push(firstShape);
-
-      var count = 0;
-      interval = setInterval(function() {
-        if (count++ === NUM_ITERATIONS) {
-          clearInterval(interval);
-        }
-        for (var i = 0; i < 80; i++) {
-          runOneIteration();
-        }
-      }, 40);
-
-      function runOneIteration() {
-        var line = makeLine();
-        for (var i = 0; i < shapes.length; i++) {
-          var shape = shapes[i];
-          if (shape.containsPoint(line.randomPoint)) {
-            shapes.splice(i, 1);
-            var newShapes = shape.split(line);
-            newShapes[0].draw();
-            newShapes[1].draw();
-            shapes.push(newShapes[0]);
-            shapes.push(newShapes[1]);
-            break;
-          }
-        }
-      }
-    }
-
-    function makeLine() {
-      var randomPoint = {
-        x: ((Math.random() - 0.2) * (Math.random() - 0.2) + 0.3) * RIGHT_BOUND,
-        y: ((Math.random() - 0.3) * (Math.random() - 0.3) + 0.3) * LOWER_BOUND,
-      };
-
-      var angle = Math.random() * Math.PI;
-
-      var startPosition = {
-        x: 0,
-        y: randomPoint.y + Math.tan(angle) * randomPoint.x
-      };
-
-      var slope = (randomPoint.y - startPosition.y) / (randomPoint.x - startPosition.x);
-
-      var endPosition = {
-        x: RIGHT_BOUND,
-        y: startPosition.y + RIGHT_BOUND * slope
-      }
-
-      return {
-        start: {
-          x: startPosition.x,
-          y: startPosition.y
-        },
-        end: {
-          x: endPosition.x,
-          y: endPosition.y
-        },
-        randomPoint: {
-          x: randomPoint.x,
-          y: randomPoint.y
-        }
-      };
-    }
+    var RIGHT_BOUND = canvas.width = imageCanvas.width;
+    var LOWER_BOUND = canvas.height = imageCanvas.height;
+    var shapes;
 
     function getBoundingRectangleOfShape(path) {
       var rectangle = {
@@ -291,6 +195,150 @@
         context.drawImage(image, 0, 0);
         context.restore();
       }
+    }
+
+    function createRandomLineAtPoint(point) {
+      var angle = Math.random() * Math.PI;
+
+      var startPosition = {
+        x: 0,
+        y: point.y + Math.tan(angle) * point.x
+      };
+
+      var slope = (point.y - startPosition.y) / (point.x - startPosition.x);
+
+      var endPosition = {
+        x: RIGHT_BOUND,
+        y: startPosition.y + RIGHT_BOUND * slope
+      }
+
+      return {
+        start: {
+          x: startPosition.x,
+          y: startPosition.y
+        },
+        end: {
+          x: endPosition.x,
+          y: endPosition.y
+        },
+        randomPoint: {
+          x: point.x,
+          y: point.y
+        }
+      };
+    }
+
+
+    reset();
+
+    function createPointsNearPoint(point) {
+      var numPoints = 10;
+
+      var points = [];
+      for (var i = 0; i < numPoints; i++) {
+        var distance;
+        switch (getRandomInt(0, 2)) {
+          case 0:
+            distance = Math.random() * 250;
+            break;
+          case 1:
+            distance = (Math.random() + Math.random()) * 50;
+            break;
+        }
+
+        var angle = Math.random() * 2 * Math.PI;
+        points.push({
+          x: point.x + Math.cos(angle) * distance,
+          y: point.y + Math.sin(angle) * distance
+        });
+
+        // context.fillStyle = "#00FF00"
+        // context.fillRect(points[points.length - 1].x - 1, points[points.length - 1].y - 1, 2, 2);
+
+
+      }
+
+      return points;
+    }
+
+    var on = false;
+    var interval;
+    var points;
+
+
+    function onMouseDown(event) {
+      on = true;
+      points = [];
+
+      interval = setInterval(function() {
+        var point = points.pop();
+        if (point === undefined) {
+          return;
+        }
+
+        var line = createRandomLineAtPoint(point);
+        for (var i = 0; i < shapes.length; i++) {
+          var shape = shapes[i];
+          if (shape.containsPoint(line.randomPoint)) {
+            shapes.splice(i, 1);
+            var newShapes = shape.split(line);
+            newShapes[0].draw();
+            newShapes[1].draw();
+            shapes.push(newShapes[0]);
+            shapes.push(newShapes[1]);
+            break;
+          }
+        }
+      }, 4);
+    }
+
+    function onMouseMove(event) {
+      if (!on) {
+        return;
+      }
+      points = points.concat(createPointsNearPoint({
+        x: event.x,
+        y: event.y
+      }));
+    }
+
+    function onMouseUp(event) {
+      on = false;
+      // setTimeout(function() {
+      clearInterval(interval);
+      // }, 500);
+    }
+
+    canvas.addEventListener('mousedown', onMouseDown);
+    canvas.addEventListener('touchstart', onMouseDown);
+
+    canvas.addEventListener('mousemove', onMouseMove);
+    canvas.addEventListener('touchmove', onMouseMove);
+
+    canvas.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('touchend', onMouseUp);
+
+    function reset() {
+      shapes = [];
+      var firstShape = new Shape(
+        [{
+          x: 0,
+          y: 0
+        }, {
+          x: 0,
+          y: LOWER_BOUND
+        }, {
+          x: RIGHT_BOUND,
+          y: LOWER_BOUND
+        }, {
+          x: RIGHT_BOUND,
+          y: 0
+        }]
+      );
+
+      firstShape.draw();
+
+      shapes.push(firstShape);
     }
   };
 }());
