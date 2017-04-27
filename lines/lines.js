@@ -15,7 +15,22 @@
 
     var RIGHT_BOUND = canvas.width = imageCanvas.width;
     var LOWER_BOUND = canvas.height = imageCanvas.height;
-    var shapes;
+
+    var firstShape = new Shape(
+      [{
+        x: 0,
+        y: 0
+      }, {
+        x: 0,
+        y: LOWER_BOUND
+      }, {
+        x: RIGHT_BOUND,
+        y: LOWER_BOUND
+      }, {
+        x: RIGHT_BOUND,
+        y: 0
+      }]
+    );
 
     function getBoundingRectangleOfShape(path) {
       var rectangle = {
@@ -85,9 +100,11 @@
       return Math.floor(Math.random() * (max - min)) + min;
     }
 
-    function Shape(path) {
+    function Shape(path, parent) {
       this.path = path;
       this.boundingRectangle = getBoundingRectangleOfShape(path);
+      this.parent = parent;
+      this.children = undefined;
     }
 
     Shape.prototype.getAverageColorOfShape = function() {
@@ -137,37 +154,43 @@
     Shape.prototype.split = function(line) {
       var path = this.path;
 
-      var newShape1 = [];
-      var newShape2 = [];
+      var newPath1 = [];
+      var newPath2 = [];
 
       var flag = true;
-      newShape1.push(path[path.length - 1]);
+      newPath1.push(path[path.length - 1]);
       for (var i = 0, j = path.length - 1; i < path.length; j = i++) {
         var intersectPoint = getIntersectionPoint(line.start, line.end, path[i], path[j]);
         if (intersectPoint === false) {
           if (flag) {
-            newShape1.push(path[i]);
+            newPath1.push(path[i]);
           } else {
-            newShape2.push(path[i]);
+            newPath2.push(path[i]);
           }
         } else {
           if (flag) {
-            newShape1.push(intersectPoint);
-            newShape2.push(intersectPoint);
-            newShape2.push(path[i]);
+            newPath1.push(intersectPoint);
+            newPath2.push(intersectPoint);
+            newPath2.push(path[i]);
           } else {
-            newShape2.push(intersectPoint);
-            newShape1.push(intersectPoint);
-            newShape1.push(path[i]);
+            newPath2.push(intersectPoint);
+            newPath1.push(intersectPoint);
+            newPath1.push(path[i]);
           }
           flag = !flag;
         }
       }
 
-      return [
-        new Shape(newShape1),
-        new Shape(newShape2)
+      if (newPath1.length < 3 || newPath2.length < 3) {
+        return undefined;
+      }
+
+      this.children = [
+        new Shape(newPath1, this),
+        new Shape(newPath2, this)
       ];
+
+      return this.children;
     }
 
     Shape.prototype.draw = function() {
@@ -281,8 +304,6 @@
     var on = false;
 
     function onMouseDown(point) {
-      console.log('meow');
-      console.log(point);
       on = true;
       createShatterPoints(point);
     }
@@ -308,18 +329,22 @@
     }
 
     function handleShapeSplit(line) {
-      for (var i = 0; i < shapes.length; i++) {
-        var shape = shapes[i];
-        if (shape.containsPoint(line.randomPoint)) {
-          shapes.splice(i, 1);
-          var newShapes = shape.split(line);
-          newShapes[0].draw();
-          newShapes[1].draw();
-          shapes.push(newShapes[0]);
-          shapes.push(newShapes[1]);
-          break;
+      var shape = firstShape;
+      while (shape.children !== undefined) {
+        if (shape.children[0].containsPoint(line.randomPoint)) {
+          shape = shape.children[0];
+        } else {
+          shape = shape.children[1];
         }
       }
+
+      var newShapes = shape.split(line);
+      if (newShapes === undefined) {
+        return;
+      }
+
+      newShapes[0].draw();
+      newShapes[1].draw();
     }
 
     canvas.addEventListener('mousedown', function(event) {
@@ -362,26 +387,28 @@
     canvas.addEventListener('touchend', onMouseUp);
 
     function reset() {
-      shapes = [];
-      var firstShape = new Shape(
-        [{
-          x: 0,
-          y: 0
-        }, {
-          x: 0,
-          y: LOWER_BOUND
-        }, {
-          x: RIGHT_BOUND,
-          y: LOWER_BOUND
-        }, {
-          x: RIGHT_BOUND,
-          y: 0
-        }]
-      );
-
       firstShape.draw();
-
-      shapes.push(firstShape);
     }
+
+    setInterval(
+      function mend() {
+        var shape = firstShape;
+        if (shape.children === undefined) {
+          return;
+        }
+
+        while (shape.children[0].children !== undefined || shape.children[1].children !== undefined) {
+          if (shape.children[0].children !== undefined && shape.children[1].children !== undefined) {
+            shape = shape.children[getRandomInt(0, 2)];
+          } else if (shape.children[0].children !== undefined) {
+            shape = shape.children[0];
+          } else {
+            shape = shape.children[1];
+          }
+        }
+
+        shape.children = undefined;
+        shape.draw();
+      }, 20);
   };
 }());
