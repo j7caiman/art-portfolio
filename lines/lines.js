@@ -313,7 +313,13 @@
     canvas.addEventListener('touchstart', onMouseDown);
 
     canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('touchmove', onMouseMove);
+    canvas.addEventListener('touchmove', function(event) {
+      event.preventDefault();
+      onMouseMove({
+        x: event.touches[0].pageX,
+        y: event.touches[0].pageY
+      });
+    });
 
     canvas.addEventListener('mouseup', onMouseUp);
     canvas.addEventListener('touchend', onMouseUp);
